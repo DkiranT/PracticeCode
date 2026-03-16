@@ -1,0 +1,28 @@
+create or replace PACKAGE     AS XXXXX_SAP_TRXN_BANK_PKG
+                                                        
+
+ PROCEDURE insert_sap_trxns_details (
+        p_sap_trxns_tbl          IN XXXXX_SAP_TRANSACTIONS_TBLTYPE,
+        p_oic_schedule_process_id IN VARCHAR2,
+        p_source                  IN VARCHAR2,
+        x_status                  OUT VARCHAR2,
+        x_message                 OUT VARCHAR2
+    );
+
+PROCEDURE PROCESS_SAP_TRANSACTIONS(
+    p_created_by              IN VARCHAR2,
+    p_oic_schedule_process_id IN  VARCHAR2,
+    p_source_file_name        IN  VARCHAR2,
+    x_status                  OUT VARCHAR2,
+    x_message                 OUT VARCHAR2
+);
+
+PROCEDURE GET_SAP_TRANSACTION_DATA (
+     p_oic_schedule_process_id IN VARCHAR2,
+    p_source_file_name        IN VARCHAR2,
+    x_transaction_data        OUT XXXXX_SAP_TRXN_TGT_TBLTYPE,
+    x_status                  OUT VARCHAR2,
+    x_message                 OUT VARCHAR2
+);
+
+END XXXXX_SAP_TRXN_BANK_PKG;
