@@ -1,0 +1,26 @@
+CREATE OR REPLACE TYPE XXXXX_TRXN_TGT_OBJTYPE AS OBJECT (
+    SETTLEMENT           VARCHAR2(50),
+    GL                   VARCHAR2(50),
+    PAYMENT              VARCHAR2(50),
+    AMOUNT               VARCHAR2(50),
+    POSTED               VARCHAR2(10),
+    OK_FLAG              VARCHAR2(10),
+    ERROR_FLAG           VARCHAR2(50),
+    USER_NAME            VARCHAR2(50),
+    TXN_DATE             VARCHAR2(20),
+    TXN_TIME             VARCHAR2(20),
+    ITEMS                VARCHAR2(20),
+    TYPE                 VARCHAR2(20),
+    MERCHANT_ID          VARCHAR2(50),
+    ORDER_NO             VARCHAR2(50),
+    FI_DOC               VARCHAR2(50),
+    INVOICE_NO           VARCHAR2(50),
+    AUTH_NO              VARCHAR2(50),w
+    AUTHORIZED_AMOUNT    VARCHAR2(50),
+    BILLED_AMOUNT        VARCHAR2(50),
+    DIFFERENCE_AMOUNT    VARCHAR2(50),
+    AUTH_REF             VARCHAR2(50)
+);
+
+CREATE OR REPLACE TYPE XXXXX_SAP_TRXN_TGT_TBLTYPE
+AS TABLE OF XXXXX_SAP_TRXN_TGT_OBJTYPE;
