@@ -1,0 +1,246 @@
+create or replace PACKAGE BODY  XXXX_SAP_TRXN_BANK_PKG AS
+
+    PROCEDURE insert_sap_trxns_details (
+        p_sap_trxns_tbl          IN XXXXX_SAP_TRANSACTIONS_TBLTYPE,
+        p_oic_schedule_process_id IN VARCHAR2,
+        p_source                  IN VARCHAR2,
+        x_status                  OUT VARCHAR2,
+        x_message                 OUT VARCHAR2
+    ) IS
+        l_error_message VARCHAR2(4000);
+        l_procedure     VARCHAR2(200) := 'insert_sap_trxns_details';
+    BEGIN
+        FORALL i IN p_sap_trxns_tbl.first..p_sap_trxns_tbl.last
+        --    LOOP
+            INSERT INTO XXXXX_SAP_SRCFILE_TBL  (
+                sr_number,
+                record_details,
+                oic_schedule_process_id,
+                file_type,
+                source_file_name,
+                created_by,
+                creation_date,
+                last_updated_by,
+                last_updated_date
+            ) VALUES ( p_sap_trxns_tbl(i).sr_number,
+                       p_sap_trxns_tbl(i).sap_details,
+                       p_oic_schedule_process_id,
+                        p_sap_trxns_tbl(i).file_type,
+                       p_sap_trxns_tbl(i).source_file_name,
+                       p_sap_trxns_tbl(i).created_by,
+                       sysdate,
+                       p_sap_trxns_tbl(i).created_by,
+                       sysdate );
+
+        COMMIT;
+
+      --    END LOOP;
+        x_status := 'S';
+        x_message := 'Records inserted successfully.';
+    EXCEPTION
+        WHEN OTHERS THEN
+            x_status := 'E';
+            x_message := 'Error: '
+                         || l_procedure
+                         || ' - '
+                         || sqlcode
+                         || ': '
+                         || sqlerrm;
+
+            RAISE;
+    END insert_sap_trxns_details;
+    
+  /*processing txn data*/  
+  PROCEDURE PROCESS_SAP_TRANSACTIONS (
+     p_created_by              IN VARCHAR2,
+     p_oic_schedule_process_id IN VARCHAR2,
+     p_source_file_name        IN VARCHAR2,
+     x_status                  OUT VARCHAR2,
+     x_message                 OUT VARCHAR2
+) IS
+    l_procedure VARCHAR2(100) := 'PROCESS_SAP_TRANSACTIONS';
+
+    CURSOR c_hso IS
+        SELECT REGEXP_REPLACE(record_details, '^-?\|', '|') AS record_details
+        FROM   XXXXX_SAP_SRCFILE_TBL
+        WHERE  oic_schedule_process_id = p_oic_schedule_process_id
+        AND    source_file_name        = p_source_file_name
+        AND    REGEXP_LIKE(TRIM(record_details), '^\|\s*\d')
+        AND    REGEXP_COUNT(record_details, '\|') >= 21
+        AND    NOT REGEXP_LIKE(record_details,
+               'Settlement|G/L|Payment|Amount|Posted|Merchant', 'i')
+        AND    NOT REGEXP_LIKE(TRIM(record_details), '^\|\s*\*')
+        AND    NOT REGEXP_LIKE(TRIM(record_details), '^\|[- ]+\|')
+        AND    NOT REGEXP_LIKE(TRIM(record_details), '^-+$')
+        AND    LENGTH(TRIM(record_details)) > 20;
+
+BEGIN
+   
+    FOR r IN c_hso LOOP
+        INSERT INTO XXXXX_SAP_TGT_TBL (
+            SETTLEMENT,
+            GL,
+            PAYMENT,
+            AMOUNT,
+            POSTED,
+            OK_FLAG,
+            ERROR_FLAG,
+            USER_NAME,
+            TXN_DATE,
+            TXN_TIME,
+            ITEMS,
+            TYPE,
+            MERCHANT_ID,
+            ORDER_NO,
+            FI_DOC,
+            INVOICE_NO,
+            AUTH_NO,
+            AUTHORIZED_AMOUNT,
+            BILLED_AMOUNT,
+            DIFFERENCE_AMOUNT,
+            AUTH_REF,
+            OIC_SCHEDULE_PROCESS_ID,
+            SOURCE_FILE_NAME,
+            CREATED_BY,
+            CREATION_DATE,
+            LAST_UPDATED_BY,
+            LAST_UPDATED_DATE
+        )
+        VALUES (
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,1,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,2,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,3,NULL,1)),
+
+            /* AMOUNT (col 4) */
+            CASE
+              WHEN REGEXP_LIKE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,4,NULL,1)), '-$')
+              THEN '-' || REPLACE(REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,4,NULL,1)),'-',''),',','')
+              ELSE REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,4,NULL,1)),',','')
+            END,
+
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,5,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,6,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,7,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,8,NULL,1)),
+            TO_CHAR(
+                TO_DATE(
+                    TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,9,NULL,1)),
+                    'MM/DD/YYYY'
+                ),
+                'DD-MON-YYYY'
+            ),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,10,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,11,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,12,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,13,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,14,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,15,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,16,NULL,1)),
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,17,NULL,1)),
+
+            /* AUTHORIZED_AMOUNT (col 18) */
+            CASE
+              WHEN REGEXP_LIKE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,18,NULL,1)), '-$')
+              THEN '-' || REPLACE(REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,18,NULL,1)),'-',''),',','')
+              ELSE REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,18,NULL,1)),',','')
+            END,
+
+            /* BILLED_AMOUNT (col 19) */
+            CASE
+              WHEN REGEXP_LIKE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,19,NULL,1)), '-$')
+              THEN '-' || REPLACE(REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,19,NULL,1)),'-',''),',','')
+              ELSE REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,19,NULL,1)),',','')
+            END,
+
+            /* DIFFERENCE_AMOUNT (col 20) */
+            CASE
+              WHEN REGEXP_LIKE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,20,NULL,1)), '-$')
+              THEN '-' || REPLACE(REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,20,NULL,1)),'-',''),',','')
+              ELSE REPLACE(TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,20,NULL,1)),',','')
+            END,
+
+            TRIM(REGEXP_SUBSTR(r.record_details,'\|([^|]*)',1,21,NULL,1)),
+            p_oic_schedule_process_id,
+            p_source_file_name,
+            p_created_by,
+            SYSDATE,
+            p_created_by,
+            SYSDATE
+        );
+    END LOOP;
+
+    COMMIT;
+
+    x_status  := 'S';
+    x_message := 'SAP data loaded successfully';
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        x_status  := 'E';
+        x_message := l_procedure || ' - ' || SQLCODE || ' : ' || SQLERRM;
+        RAISE;
+END PROCESS_SAP_TRANSACTIONS;
+
+
+/*fetch sap trnsaction data*/
+PROCEDURE GET_SAP_TRANSACTION_DATA
+(
+    p_oic_schedule_process_id IN VARCHAR2,
+    p_source_file_name        IN VARCHAR2,
+    x_transaction_data        OUT XXXXX_SAP_TRXN_TGT_TBLTYPE,
+    x_status                  OUT VARCHAR2,
+    x_message                 OUT VARCHAR2
+) AS
+    l_procedure VARCHAR2(500) := 'GET_SAP_TRANSACTION_DATA';
+BEGIN
+    ------------------------------------------------------------------
+    -- initialize collection
+    ------------------------------------------------------------------
+    x_transaction_data := XXTMO_SAP_TRXN_TGT_TBLTYPE();
+
+    ------------------------------------------------------------------
+    -- FETCH HSO DATA (NO FILE TYPE FILTER)
+    ------------------------------------------------------------------
+    SELECT XXXXX_SAP_TRXN_TGT_OBJTYPE(
+            t.SETTLEMENT,
+            t.GL,
+            t.PAYMENT,
+            t.AMOUNT,
+            t.POSTED,
+            t.OK_FLAG,
+            t.ERROR_FLAG,
+            t.USER_NAME,
+            t.TXN_DATE,
+            t.TXN_TIME,
+            t.ITEMS,
+            t.TYPE,
+            t.MERCHANT_ID,
+            t.ORDER_NO,
+            t.FI_DOC,
+            t.INVOICE_NO,
+            t.AUTH_NO,
+            t.AUTHORIZED_AMOUNT,
+            t.BILLED_AMOUNT,
+            t.DIFFERENCE_AMOUNT,
+            t.AUTH_REF
+    )
+    BULK COLLECT INTO x_transaction_data
+    FROM XXXXX_SAP_TGT_TBL t 
+    WHERE t.oic_schedule_process_id = p_oic_schedule_process_id
+      AND t.source_file_name        = p_source_file_name;
+
+    ------------------------------------------------------------------
+    -- SUCCESS
+    ------------------------------------------------------------------
+    x_status  := 'S';
+    x_message := 'SAP transaction data retrieved successfully';
+
+EXCEPTION
+    WHEN OTHERS THEN
+        x_transaction_data := XXXXX_SAP_TRXN_TGT_TBLTYPE();
+        x_status  := 'E';
+        x_message := l_procedure || ' - ' || SQLCODE || ' - ' || SQLERRM;
+END GET_SAP_TRANSACTION_DATA;
+
+  END XXTMO_HSO_ARCS_TRXN_BANK_PKG;
