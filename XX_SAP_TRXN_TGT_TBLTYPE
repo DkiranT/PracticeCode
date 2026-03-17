@@ -1,26 +1,35 @@
-CREATE OR REPLACE TYPE XX_TRXN_TGT_OBJTYPE AS OBJECT (
-    SETTLEMENT           VARCHAR2(50),
-    GL                   VARCHAR2(50),
-    PAYMENT              VARCHAR2(50),
-    AMOUNT               VARCHAR2(50),
-    POSTED               VARCHAR2(10),
-    OK_FLAG              VARCHAR2(10),
-    ERROR_FLAG           VARCHAR2(50),
-    USER_NAME            VARCHAR2(50),
-    TXN_DATE             VARCHAR2(20),
-    TXN_TIME             VARCHAR2(20),
-    ITEMS                VARCHAR2(20),
-    TYPE                 VARCHAR2(20),
-    MERCHANT_ID          VARCHAR2(50),
-    ORDER_NO             VARCHAR2(50),
-    FI_DOC               VARCHAR2(50),
-    INVOICE_NO           VARCHAR2(50),
-    AUTH_NO              VARCHAR2(50),w
-    AUTHORIZED_AMOUNT    VARCHAR2(50),
-    BILLED_AMOUNT        VARCHAR2(50),
-    DIFFERENCE_AMOUNT    VARCHAR2(50),
-    AUTH_REF             VARCHAR2(50)
-);
 
-CREATE OR REPLACE TYPE XX_SAP_TRXN_TGT_TBLTYPE
-AS TABLE OF XX_SAP_TRXN_TGT_OBJTYPE;
+CREATE OR REPLACE TYPE XX_SAP_TRXN_TGT_OBJTYPE AS OBJECT (
+    ACCOUNT                 VARCHAR2(250),
+    GL                      VARCHAR2(50),
+    YEAR_                   VARCHAR2(10),
+    REFERENCE               VARCHAR2(100),
+    ASSIGNMENT              VARCHAR2(100),
+    DOCUMENT_NO             VARCHAR2(50),
+    ITEM                    VARCHAR2(10),
+    CLEARING_DOC            VARCHAR2(50),
+    TYPE_                   VARCHAR2(10),   
+    NET_DUE_DATE            VARCHAR2(20),
+    DOC_DATE                VARCHAR2(20),
+    PAY_TERM                VARCHAR2(20),
+    LC_AMOUNT               VARCHAR2(50),
+    ARREAR                  VARCHAR2(20),
+    PBK                     VARCHAR2(20),
+    RCD                     VARCHAR2(20),
+    TEXT_                   VARCHAR2(200),
+    BLINE_DATE              VARCHAR2(20),
+    POSTING_DATE            VARCHAR2(20),
+    ENTRY_DATE              VARCHAR2(20),
+    PK                      VARCHAR2(20),
+    S                       VARCHAR2(10),
+    CREATED_BY              VARCHAR2(240),
+    CREATION_DATE           VARCHAR2(100),
+    LAST_UPDATED_BY         VARCHAR2(240),
+    LAST_UPDATED_DATE       VARCHAR2(100),
+    OIC_SCHEDULE_PROCESS_ID VARCHAR2(100),
+    SOURCE_FILE_NAME        VARCHAR2(200),
+    SAP_FILE_TYPE           VARCHAR2(50)
+);
+/
+
+CREATE OR REPLACE TYPE XX_SAP_TRXN_TGT_TBLTYPE AS TABLE OF XX_SAP_TRXN_TGT_OBJTYPE;
